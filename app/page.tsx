@@ -370,7 +370,7 @@ function FormStep({
 // ─── Timeline Step ─────────────────────────────────────────────────────────────
 
 const MAX_YEARS = 30;
-const TICKS = [0, 5, 10, 15, 20, 25, 30];
+const TICKS = [0, 10, 20, 30]; /* was [0, 5, 10, 15, 20, 25, 30] */
 
 function TimelineStep({
   form,
@@ -718,7 +718,7 @@ function TimelineStep({
           <div className="flex items-center gap-3">
             {selectedYear > 0 && (
               <button
-                onClick={() => setSelectedYear(selectedYear - 5)}
+                onClick={() => setSelectedYear(selectedYear - 10)} // Was -5
                 className="text-sm px-4 py-2 rounded-lg"
                 style={{ border: '1px solid #27272a', color: '#71717a' }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#3f3f46'; }}
@@ -730,14 +730,14 @@ function TimelineStep({
 
             {selectedYear < MAX_YEARS ? (
               <button
-                onClick={() => setSelectedYear(selectedYear + 5)}
+                onClick={() => setSelectedYear(selectedYear + 10)} // Was + 5
                 className="text-sm px-5 py-2 rounded-lg font-semibold"
                 style={{ backgroundColor: entry.accentColor, color: '#fff' }}
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
               >
-                +5 years →
-              </button>
+                +10 years →
+              </button> // was +5
             ) : (
               <button
                 onClick={() => window.print()}
