@@ -850,15 +850,15 @@ export default function Home() {
 
   const handleTimelineSubmit = async () => {
   try {
-    const res = await fetch('http://localhost:4000/api/statscalc', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        age: Number(form.age),
-        yearsSmoked: Number(form.yearsSmoked),
-        cigarettesPerDay: Number(form.cigarettesPerDay),
-      }),
-    });
+  const res = await fetch('/api/auth/statRouter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      age: form.age,
+      yearsSmoked: form.yearsSmoked,
+      cigarettesPerDay: form.cigarettesPerDay,
+    }),
+  });
 
     const json = await res.json();
 
