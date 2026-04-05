@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { analyzeSmokingRisk } from './api/auth/smokingRisk';
+import guy1Image from './people/guy1.png';
 
 type Step = 'upload' | 'form' | 'timeline';
 
@@ -308,7 +310,10 @@ function UploadStep({
         Continue →
       </button>
       <button
-        onClick={onNext}
+        onClick={() => {
+          onPhoto(guy1Image.src);
+          onNext();
+        }}
         className="mt-3 text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
       >
         Skip photo and continue
@@ -421,20 +426,19 @@ const TICKS = [0, 10, 20, 30]; /* was [0, 5, 10, 15, 20, 25, 30] */
 function TimelineStep({
   form,
   photo,
+  generatedPhotos,
   riskData,
   onEdit,
   onReset,
 }: {
   form: FormData;
   photo: string | null;
-  riskData: any; 
+  generatedPhotos: Record<number, string>;
+  riskData: any;
   onEdit: () => void;
   onReset: () => void;
 }) {
   const [selectedYear, setSelectedYear] = useState(0);
-  const [isFlipped, setIsFlipped]       = useState(false);
-
-  useEffect(() => { setIsFlipped(false); }, [selectedYear]);
 
   const cpd           = parseFloat(form.cigarettesPerDay) || 10;
   const yrs           = parseFloat(form.yearsSmoked) || 1;
@@ -523,7 +527,47 @@ const entry = {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 pt-10 pb-12">
+      <div className="max-w-5xl mx-auto px-6 pt-10 pb-12">
+      <div className="flex gap-6 items-start">
+
+        {/* ── Photo column (left) ── */}
+        <div style={{ width: 180, flexShrink: 0 }}>
+          <div style={{ aspectRatio: '3/4', borderRadius: 12, overflow: 'hidden', border: `1px solid ${entry.accentColor}30` }}>
+            {photo ? (
+              selectedYear === 0 || !generatedPhotos[selectedYear] ? (
+                <img src={photo} alt="You" className="w-full h-full object-cover" />
+              ) : (
+                <img src={`data:image/jpeg;base64,${generatedPhotos[selectedYear]}`} alt={`+${selectedYear} years`} className="w-full h-full object-cover" />
+              )
+            ) : (
+              <div style={{ width: '100%', height: '100%', backgroundColor: '#13131a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3f3f46" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="M21 15l-5-5L5 21" />
+                </svg>
+                <span style={{ color: '#52525b', fontSize: 10, textAlign: 'center', padding: '0 12px', lineHeight: 1.5 }}>No photo</span>
+              </div>
+            )}
+          </div>
+          <div
+            style={{
+              marginTop: 10,
+              padding: '3px 10px',
+              borderRadius: 8,
+              fontSize: 11, fontWeight: 600,
+              textAlign: 'center',
+              backgroundColor: `${entry.accentColor}18`,
+              color: entry.accentColor,
+              border: `1px solid ${entry.accentColor}30`,
+            }}
+          >
+            {selectedYear === 0 ? 'Today' : `+${selectedYear} years`}
+          </div>
+        </div>
+
+        {/* ── Main content column (right) ── */}
+        <div className="flex-1 min-w-0">
 
         {/* ── Timeline Bar ── */}
         <div className="mb-10">
@@ -585,128 +629,7 @@ const entry = {
             border: `1px solid #1c1c22`,
           }}
         >
-          <div className="flex flex-col sm:flex-row" style={{ minHeight: 380 }}>
-
-            {/* ── Left: flip card (only when a photo was uploaded) ── */}
-            {photo && <div
-              className="relative flex flex-col items-center justify-center sm:w-1/2"
-              style={{ backgroundColor: '#0e0e14', borderRight: '1px solid #1c1c22', minHeight: 300, padding: '24px 0 64px' }}
-            >
-              {/* 3-D flip card */}
-              <div style={{ perspective: '1100px', width: '62%', aspectRatio: '3/4' }}>
-                <div
-                  style={{
-                    position: 'relative',
-                    width: '100%',
-                    height: '100%',
-                    transformStyle: 'preserve-3d',
-                    transition: 'transform 0.65s cubic-bezier(0.4, 0, 0.2, 1)',
-                    transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-                  }}
-                >
-                  {/* ── Front face — Photo 1 placeholder ── */}
-                  <div
-                    style={{
-                      position: 'absolute', inset: 0,
-                      backfaceVisibility: 'hidden',
-                      WebkitBackfaceVisibility: 'hidden',
-                      borderRadius: 12,
-                      overflow: 'hidden',
-                      border: '1px dashed #2a2a33',
-                      backgroundColor: '#13131a',
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
-                    }}
-                  >
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3f3f46" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <path d="M21 15l-5-5L5 21" />
-                    </svg>
-                    <span style={{ color: '#52525b', fontSize: 11, textAlign: 'center', padding: '0 16px', lineHeight: 1.5 }}>
-                      Photo 1<br />will appear here
-                    </span>
-                  </div>
-
-                  {/* ── Back face — Photo 2 placeholder ── */}
-                  <div
-                    style={{
-                      position: 'absolute', inset: 0,
-                      backfaceVisibility: 'hidden',
-                      WebkitBackfaceVisibility: 'hidden',
-                      transform: 'rotateY(180deg)',
-                      borderRadius: 12,
-                      overflow: 'hidden',
-                      border: `1px dashed ${entry.accentColor}40`,
-                      backgroundColor: '#13131a',
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
-                    }}
-                  >
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={entry.accentColor} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <path d="M21 15l-5-5L5 21" />
-                    </svg>
-                    <span style={{ color: '#52525b', fontSize: 11, textAlign: 'center', padding: '0 16px', lineHeight: 1.5 }}>
-                      Photo 2<br />will appear here
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Flip button — bottom center */}
-              <button
-                onClick={() => setIsFlipped((f) => !f)}
-                style={{
-                  position: 'absolute',
-                  bottom: 16,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '6px 14px',
-                  borderRadius: 99,
-                  backgroundColor: '#13131a',
-                  border: `1px solid ${entry.accentColor}45`,
-                  color: entry.accentColor,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${entry.accentColor}15`; e.currentTarget.style.borderColor = entry.accentColor; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#13131a'; e.currentTarget.style.borderColor = `${entry.accentColor}45`; }}
-              >
-                {/* Flip icon — nudges on idle */}
-                <svg
-                  width="13" height="13" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  style={{ animation: 'flipNudge 3s ease-in-out infinite' }}
-                >
-                  <path d="M1 4v6h6" />
-                  <path d="M23 20v-6h-6" />
-                  <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
-                </svg>
-                {isFlipped ? 'Photo 1' : 'Photo 2'}
-              </button>
-
-              {/* Year badge */}
-              <div
-                style={{
-                  position: 'absolute', bottom: 16, left: 16,
-                  padding: '3px 10px',
-                  borderRadius: 8,
-                  fontSize: 11, fontWeight: 600,
-                  backgroundColor: `${entry.accentColor}18`,
-                  color: entry.accentColor,
-                  border: `1px solid ${entry.accentColor}30`,
-                }}
-              >
-                {selectedYear === 0 ? 'Today' : `+${selectedYear} years`}
-              </div>
-            </div>}
-
-
-{/* ── Right: data (full-width when no photo) ── */}
-<div className="flex flex-col justify-between p-6" style={{ width: photo ? '50%' : '100%' }}>
+<div className="flex flex-col justify-between p-6">
   {/* Title + description */}
   <div className="mb-5">
     <h2 className="text-white font-semibold text-lg mb-1">{entry.milestone}</h2>
@@ -718,82 +641,54 @@ const entry = {
     </p>
   </div>
 
-  {/* Health risks */}
-  <div className="space-y-3 mb-5">
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-zinc-500 text-xs">Heart disease risk</span>
-        <span className="text-white font-bold text-sm tabular-nums">
-          {formatRisk(entry.heartDiseasePct)}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full" style={{ backgroundColor: '#27272a' }}>
-        <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{
-            width: `${Math.min(entry.heartDiseasePct, 100)}%`,
-            backgroundColor: entry.accentColor,
-          }}
-        />
-      </div>
-    </div>
-
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-zinc-500 text-xs">Stroke risk</span>
-        <span className="text-white font-bold text-sm tabular-nums">
-          {formatRisk(entry.strokePct)}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full" style={{ backgroundColor: '#27272a' }}>
-        <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{
-            width: `${Math.min(entry.strokePct, 100)}%`,
-            backgroundColor: entry.accentColor,
-          }}
-        />
-      </div>
-    </div>
-
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-zinc-500 text-xs">Lung disease risk</span>
-        <span className="text-white font-bold text-sm tabular-nums">
-          {formatRisk(entry.lungDiseasePct)}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full" style={{ backgroundColor: '#27272a' }}>
-        <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{
-            width: `${Math.min(entry.lungDiseasePct, 100)}%`,
-            backgroundColor: entry.accentColor,
-          }}
-        />
-      </div>
-    </div>
+  {/* Health risks — people grid */}
+  <div className="space-y-4 mb-5">
+    {([
+      { label: 'Heart disease', pct: entry.heartDiseasePct },
+      { label: 'Stroke',        pct: entry.strokePct },
+      { label: 'Lung disease',  pct: entry.lungDiseasePct },
+    ] as { label: string; pct: number }[]).map(({ label, pct }) => {
+      const TOTAL = 50;
+      const filled = Math.max(1, Math.round((pct / 100) * TOTAL));
+      const oneInPeople = Math.max(1, Math.round(100 / Math.max(pct, 0.1)));
+      return (
+        <div key={label}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-zinc-500 text-xs">{label}</span>
+            <span className="text-xs tabular-nums" style={{ color: entry.accentColor }}>
+              1 out of {oneInPeople} people
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {Array.from({ length: TOTAL }).map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  backgroundColor: i < filled ? entry.accentColor : '#27272a',
+                  boxShadow: i < filled ? `0 0 5px ${entry.accentColor}60` : 'none',
+                  transition: 'background-color 0.3s',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    })}
   </div>
 
   {/* Stats grid */}
   <div className="grid grid-cols-3 gap-2">
     <div className="rounded-lg p-3" style={{ backgroundColor: '#18181b' }}>
-      <div className="text-zinc-600 text-xs mb-0.5">Cigarettes Smoked</div>
-      <div className="font-semibold text-sm" style={{ color: entry.accentColor }}>
-        {entry.cigarettesSmoked.toLocaleString()}
-      </div>
-    </div>
-
-    <div className="rounded-lg p-3" style={{ backgroundColor: '#18181b' }}>
-      <div className="text-zinc-600 text-xs mb-0.5">
-        {selectedYear === 0 ? 'Annual CO₂' : 'CO₂ Added'}
-      </div>
-      <div className="font-semibold text-sm" style={{ color: entry.accentColor }}>
-        {selectedYear === 0
-          ? `${Math.round((cpd * 365 * 14) / 1000)} kg/yr`
-          : `${entry.co2Kg.toLocaleString()} kg`}
-      </div>
-    </div>
+  <div className="text-zinc-600 text-xs mb-0.5">CO₂ Emitted</div>
+  <div className="font-semibold text-sm" style={{ color: entry.accentColor }}>
+    {selectedYear === 0
+      ? `${Math.round((cpd * 365 * 14) / 1000)} kg/yr`
+      : `${entry.co2Kg} kg`}
+  </div>
+</div>
 
     <div className="rounded-lg p-3" style={{ backgroundColor: '#18181b' }}>
       <div className="text-zinc-600 text-xs mb-0.5">Water Used</div>
@@ -926,7 +821,6 @@ const entry = {
   </div>
 </div>
 </div>
-</div>
 
         {/* Navigation */}
         <div className="mt-6 flex items-center justify-between">
@@ -976,7 +870,9 @@ const entry = {
             )}
           </div>
         </div>
-      </div>
+        </div> {/* closes flex-1 main content column */}
+      </div> {/* closes flex gap-6 outer row */}
+      </div> {/* closes max-w-5xl content wrapper */}
     </div>
   );
 }
@@ -988,28 +884,81 @@ export default function Home() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [form, setForm]   = useState<FormData>({ age: '', yearsSmoked: '', cigarettesPerDay: '' , pricePerPack: ''});
   const [riskData, setRiskData] = useState<any>(null);
+  const [generatedPhotos, setGeneratedPhotos] = useState<Record<number, string>>({});
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Set to true to enable real photoGen API calls
+  const PHOTO_GEN_ENABLED = false;
+
+  async function toPhotoUpload(src: string): Promise<{ blob: Blob; filename: string }> {
+    if (src.startsWith('data:')) {
+      const [header, b64] = src.split(',');
+      const mime = header.match(/:(.*?);/)?.[1] ?? 'image/jpeg';
+      const binary = atob(b64);
+      const arr = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+      const extension = mime.split('/')[1] ?? 'jpg';
+      return {
+        blob: new Blob([arr], { type: mime }),
+        filename: `photo.${extension}`,
+      };
+    }
+
+    const res = await fetch(src);
+    const blob = await res.blob();
+    const extension = blob.type.split('/')[1] ?? 'png';
+    return {
+      blob,
+      filename: `photo.${extension}`,
+    };
+  }
+
+  async function callPhotoGen(futureYears: number): Promise<string | null> {
+    if (!PHOTO_GEN_ENABLED) return null;
+    const photoSrc = photo ?? guy1Image.src;
+    const { blob, filename } = await toPhotoUpload(photoSrc);
+    const fd = new FormData();
+    fd.append('noOfCigs', form.cigarettesPerDay);
+    fd.append('pastYears', form.yearsSmoked);
+    fd.append('futureYears', String(futureYears));
+    fd.append('userPhoto', blob, filename);
+    const res = await fetch('/api/auth/photoGen', { method: 'POST', body: fd });
+    const json = await res.json();
+    return json.success && json.data?.[0] ? json.data[0] : null;
+  }
 
   const handleTimelineSubmit = async () => {
+  setIsGenerating(true);
   try {
-  const res = await fetch('/api/auth/statRouter', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    await new Promise((r) => setTimeout(r, 1200)); // simulate network delay
+
+    const result = analyzeSmokingRisk({
       age: form.age,
       yearsSmoked: form.yearsSmoked,
       cigarettesPerDay: form.cigarettesPerDay,
-    }),
-  });
+    });
 
-    const json = await res.json();
+    if (result.success) {
+      setRiskData(result.data);
+    }
 
-    console.log('API response:', json);
+    const [img10, img20, img30] = await Promise.all([
+      callPhotoGen(10),
+      callPhotoGen(20),
+      callPhotoGen(30),
+    ]);
 
-    setRiskData(json.data); // ✅ THIS is what fixes your loading screen
-    setStep('timeline');    // move AFTER data is ready
+    const photos: Record<number, string> = {};
+    if (img10) photos[10] = img10;
+    if (img20) photos[20] = img20;
+    if (img30) photos[30] = img30;
+    setGeneratedPhotos(photos);
 
+    setStep('timeline');
   } catch (err) {
-    console.error('Failed to fetch timeline:', err);
+    console.error('Failed to build timeline:', err);
+  } finally {
+    setIsGenerating(false);
   }
 };
 
@@ -1018,6 +967,29 @@ export default function Home() {
   }
 
   if (step === 'form') {
+    if (isGenerating) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center" style={{ backgroundColor: '#09090f' }}>
+          <div style={{ marginBottom: 32, position: 'relative', width: 72, height: 72 }}>
+            <div style={{
+              position: 'absolute', inset: 0,
+              borderRadius: '50%',
+              border: '2px solid #27272a',
+            }} />
+            <div style={{
+              position: 'absolute', inset: 0,
+              borderRadius: '50%',
+              border: '2px solid transparent',
+              borderTopColor: '#f59e0b',
+              animation: 'spin 0.9s linear infinite',
+            }} />
+          </div>
+          <p className="text-white font-semibold text-lg mb-2">Generating your timeline</p>
+          <p className="text-zinc-500 text-sm">Analysing your photo and health data…</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      );
+    }
     return (
       <FormStep
         form={form}
@@ -1032,12 +1004,15 @@ export default function Home() {
 <TimelineStep
   form={form}
   photo={photo}
+  generatedPhotos={generatedPhotos}
   riskData={riskData}
   onEdit={() => setStep('form')}
   onReset={() => {
     setStep('upload');
     setPhoto(null);
+
     setForm({ age: '', yearsSmoked: '', cigarettesPerDay: '', pricePerPack: '' });
+    setGeneratedPhotos({});
   }}
 />
   );
