@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { analyzeSmokingRisk } from './api/auth/smokingRisk';
+import guy1Image from './people/guy1.png';
 
 type Step = 'upload' | 'form' | 'timeline';
 
@@ -268,7 +269,10 @@ function UploadStep({
         Continue →
       </button>
       <button
-        onClick={onNext}
+        onClick={() => {
+          onPhoto(guy1Image.src);
+          onNext();
+        }}
         className="mt-3 text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
       >
         Skip photo and continue
@@ -474,24 +478,50 @@ const entry = {
             </button>
           </div>
 
-          {/* Past damage summary — small, subdued */}
-          <div className="flex gap-6 mt-5 pt-5" style={{ borderTop: '1px solid #18181b' }}>
-            {[
-              { label: 'CO₂ emitted so far',  value: `${totalPastCO2.toLocaleString()} kg` },
-              { label: 'Cigarettes smoked',    value: totalPastCigs.toLocaleString() },
-              { label: 'Spent on cigarettes',  value: `$${Math.round((totalPastCigs / 20) * 14).toLocaleString()}` },
-              { label: 'Annual CO₂',           value: `${annualCO2kg} kg/yr` },
-            ].map((s) => (
-              <div key={s.label}>
-                <div className="text-zinc-600 text-xs">{s.label}</div>
-                <div className="text-zinc-300 text-sm font-semibold mt-0.5">{s.value}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 pt-10 pb-12">
+      <div className="max-w-5xl mx-auto px-6 pt-10 pb-12">
+      <div className="flex gap-6 items-start">
+
+        {/* ── Photo column (left) ── */}
+        <div style={{ width: 180, flexShrink: 0 }}>
+          <div style={{ aspectRatio: '3/4', borderRadius: 12, overflow: 'hidden', border: `1px solid ${entry.accentColor}30` }}>
+            {photo ? (
+              selectedYear === 0 || !generatedPhotos[selectedYear] ? (
+                <img src={photo} alt="You" className="w-full h-full object-cover" />
+              ) : (
+                <img src={`data:image/jpeg;base64,${generatedPhotos[selectedYear]}`} alt={`+${selectedYear} years`} className="w-full h-full object-cover" />
+              )
+            ) : (
+              <div style={{ width: '100%', height: '100%', backgroundColor: '#13131a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3f3f46" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="M21 15l-5-5L5 21" />
+                </svg>
+                <span style={{ color: '#52525b', fontSize: 10, textAlign: 'center', padding: '0 12px', lineHeight: 1.5 }}>No photo</span>
+              </div>
+            )}
+          </div>
+          <div
+            style={{
+              marginTop: 10,
+              padding: '3px 10px',
+              borderRadius: 8,
+              fontSize: 11, fontWeight: 600,
+              textAlign: 'center',
+              backgroundColor: `${entry.accentColor}18`,
+              color: entry.accentColor,
+              border: `1px solid ${entry.accentColor}30`,
+            }}
+          >
+            {selectedYear === 0 ? 'Today' : `+${selectedYear} years`}
+          </div>
+        </div>
+
+        {/* ── Main content column (right) ── */}
+        <div className="flex-1 min-w-0">
 
         {/* ── Timeline Bar ── */}
         <div className="mb-10">
@@ -553,40 +583,7 @@ const entry = {
             border: `1px solid #1c1c22`,
           }}
         >
-          <div className="flex flex-col sm:flex-row" style={{ minHeight: photo ? 480 : 380 }}>
-
-            {/* ── Left: single photo per year ── */}
-            {photo && (
-              <div
-                className="relative flex flex-col items-center justify-center sm:w-1/2"
-                style={{ backgroundColor: '#0e0e14', borderRight: '1px solid #1c1c22', minHeight: 480, padding: '32px 24px' }}
-              >
-                <div style={{ width: '80%', aspectRatio: '3/4', borderRadius: 12, overflow: 'hidden', border: `1px solid ${entry.accentColor}30` }}>
-                  {selectedYear === 0 || !generatedPhotos[selectedYear] ? (
-                    <img src={photo} alt="You" className="w-full h-full object-cover" />
-                  ) : (
-                    <img src={`data:image/jpeg;base64,${generatedPhotos[selectedYear]}`} alt={`+${selectedYear} years`} className="w-full h-full object-cover" />
-                  )}
-                </div>
-                <div
-                  style={{
-                    marginTop: 12,
-                    padding: '3px 10px',
-                    borderRadius: 8,
-                    fontSize: 11, fontWeight: 600,
-                    backgroundColor: `${entry.accentColor}18`,
-                    color: entry.accentColor,
-                    border: `1px solid ${entry.accentColor}30`,
-                  }}
-                >
-                  {selectedYear === 0 ? 'Today' : `+${selectedYear} years`}
-                </div>
-              </div>
-            )}
-
-
-{/* ── Right: data (full-width when no photo) ── */}
-<div className="flex flex-col justify-between p-6" style={{ width: photo ? '50%' : '100%' }}>
+<div className="flex flex-col justify-between p-6">
   {/* Title + description */}
   <div className="mb-5">
     <h2 className="text-white font-semibold text-lg mb-1">{entry.milestone}</h2>
@@ -598,72 +595,46 @@ const entry = {
     </p>
   </div>
 
-  {/* Health risks */}
-  <div className="space-y-3 mb-5">
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-zinc-500 text-xs">Heart disease risk</span>
-        <span className="text-white font-bold text-sm tabular-nums">
-          {formatRisk(entry.heartDiseasePct)}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full" style={{ backgroundColor: '#27272a' }}>
-        <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{
-            width: `${Math.min(entry.heartDiseasePct, 100)}%`,
-            backgroundColor: entry.accentColor,
-          }}
-        />
-      </div>
-    </div>
-
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-zinc-500 text-xs">Stroke risk</span>
-        <span className="text-white font-bold text-sm tabular-nums">
-          {formatRisk(entry.strokePct)}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full" style={{ backgroundColor: '#27272a' }}>
-        <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{
-            width: `${Math.min(entry.strokePct, 100)}%`,
-            backgroundColor: entry.accentColor,
-          }}
-        />
-      </div>
-    </div>
-
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-zinc-500 text-xs">Lung disease risk</span>
-        <span className="text-white font-bold text-sm tabular-nums">
-          {formatRisk(entry.lungDiseasePct)}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full" style={{ backgroundColor: '#27272a' }}>
-        <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{
-            width: `${Math.min(entry.lungDiseasePct, 100)}%`,
-            backgroundColor: entry.accentColor,
-          }}
-        />
-      </div>
-    </div>
+  {/* Health risks — people grid */}
+  <div className="space-y-4 mb-5">
+    {([
+      { label: 'Heart disease', pct: entry.heartDiseasePct },
+      { label: 'Stroke',        pct: entry.strokePct },
+      { label: 'Lung disease',  pct: entry.lungDiseasePct },
+    ] as { label: string; pct: number }[]).map(({ label, pct }) => {
+      const TOTAL = 50;
+      const filled = Math.max(1, Math.round((pct / 100) * TOTAL));
+      const oneInPeople = Math.max(1, Math.round(100 / Math.max(pct, 0.1)));
+      return (
+        <div key={label}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-zinc-500 text-xs">{label}</span>
+            <span className="text-xs tabular-nums" style={{ color: entry.accentColor }}>
+              1 out of {oneInPeople} people
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {Array.from({ length: TOTAL }).map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  backgroundColor: i < filled ? entry.accentColor : '#27272a',
+                  boxShadow: i < filled ? `0 0 5px ${entry.accentColor}60` : 'none',
+                  transition: 'background-color 0.3s',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    })}
   </div>
 
   {/* Stats grid */}
   <div className="grid grid-cols-2 gap-2">
-    <div className="rounded-lg p-3" style={{ backgroundColor: '#18181b' }}>
-      <div className="text-zinc-600 text-xs mb-0.5">Risk summary</div>
-      <div className="text-white text-sm font-medium">
-        {entry.heartDiseasePct.toFixed(1)}% heart · {entry.strokePct.toFixed(1)}% stroke
-      </div>
-    </div>
-
     <div className="rounded-lg p-3" style={{ backgroundColor: '#18181b' }}>
       <div className="text-zinc-600 text-xs mb-0.5">
         {selectedYear === 0 ? 'Annual CO₂' : 'CO₂ Added'}
@@ -695,7 +666,6 @@ const entry = {
       </div>
     </div>
   </div>
-</div>
 </div>
 </div>
 
@@ -747,7 +717,9 @@ const entry = {
             )}
           </div>
         </div>
-      </div>
+        </div> {/* closes flex-1 main content column */}
+      </div> {/* closes flex gap-6 outer row */}
+      </div> {/* closes max-w-5xl content wrapper */}
     </div>
   );
 }
@@ -765,19 +737,38 @@ export default function Home() {
   // Set to true to enable real photoGen API calls
   const PHOTO_GEN_ENABLED = false;
 
+  async function toPhotoUpload(src: string): Promise<{ blob: Blob; filename: string }> {
+    if (src.startsWith('data:')) {
+      const [header, b64] = src.split(',');
+      const mime = header.match(/:(.*?);/)?.[1] ?? 'image/jpeg';
+      const binary = atob(b64);
+      const arr = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+      const extension = mime.split('/')[1] ?? 'jpg';
+      return {
+        blob: new Blob([arr], { type: mime }),
+        filename: `photo.${extension}`,
+      };
+    }
+
+    const res = await fetch(src);
+    const blob = await res.blob();
+    const extension = blob.type.split('/')[1] ?? 'png';
+    return {
+      blob,
+      filename: `photo.${extension}`,
+    };
+  }
+
   async function callPhotoGen(futureYears: number): Promise<string | null> {
-    if (!PHOTO_GEN_ENABLED || !photo) return null;
-    const [header, b64] = photo.split(',');
-    const mime = header.match(/:(.*?);/)?.[1] ?? 'image/jpeg';
-    const binary = atob(b64);
-    const arr = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
-    const blob = new Blob([arr], { type: mime });
+    if (!PHOTO_GEN_ENABLED) return null;
+    const photoSrc = photo ?? guy1Image.src;
+    const { blob, filename } = await toPhotoUpload(photoSrc);
     const fd = new FormData();
     fd.append('noOfCigs', form.cigarettesPerDay);
     fd.append('pastYears', form.yearsSmoked);
     fd.append('futureYears', String(futureYears));
-    fd.append('userPhoto', blob, 'photo.jpg');
+    fd.append('userPhoto', blob, filename);
     const res = await fetch('/api/auth/photoGen', { method: 'POST', body: fd });
     const json = await res.json();
     return json.success && json.data?.[0] ? json.data[0] : null;
